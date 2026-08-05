@@ -1,0 +1,8 @@
+{
+  "model_name": "qwen/qwen-2.5-7b-instruct",
+  "parameter_size": "7.6B",
+  "framework": "OpenRouter LLM API & Multi-Agent A2A Architecture",
+  "runtime": "Python 3.10+",
+  "max_parameters_limit": "10B",
+  "date_executed": "2026-08-05"
+}
