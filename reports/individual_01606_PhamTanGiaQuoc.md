@@ -8,6 +8,7 @@
 | MSSV            | 01606       |
 | Khóa/Lớp        | K4         |
 | Vai trò chính   | Phân chia Agent (Coordinator)    |
+| Model sử dụng   | gpt-4o-mini (OpenAI)             |
 | Ngày hoàn thành | 2026-08-05 |
 
 ## 2. Vai trò và phạm vi công việc
