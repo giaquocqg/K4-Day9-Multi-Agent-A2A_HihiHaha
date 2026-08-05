@@ -143,10 +143,11 @@ export async function llmCustomerAgent(order, ds, objective = '') {
         maxRetries: SPECIALIST_RETRIES,
         invoke: (feedback) => runAgent({
             system: `Bạn là Customer Agent. Phải gọi lookup_customer trước khi kết luận.
-related_order_count chỉ đếm các order KHÁC order hiện tại. Áp dụng truth table bắt buộc:
-- related_order_count = 0 -> is_repeat_customer = false
-- related_order_count >= 1 -> is_repeat_customer = true
-Không hiểu "1" là chỉ có order hiện tại. ${JSON_ONLY}
+Sau khi nhận kết quả từ tool observation:
+- NẾU related_order_count == 0 THÌ is_repeat_customer = false.
+- NẾU related_order_count >= 1 THÌ is_repeat_customer = true.
+Chú ý: related_order_count đã được tool đếm sẵn. Bạn phải gán is_repeat_customer khớp 100% với giá trị related_order_count từ tool.
+${JSON_ONLY}
 Schema: {"is_repeat_customer":boolean,"note":"một câu nêu kết luận và evidence"}`,
             user: `Task từ Coordinator: ${objective}\nOrder: ${order.order_id}${feedbackText(feedback)}`,
             tools: [tool('lookup_customer', 'Tra customer identity và lịch sử order của cùng customer_unique_id.')],
@@ -344,7 +345,7 @@ Với branch đã chọn, dùng chính xác contract sau:
 
 Lượt này chỉ tạo core verdict. Không tạo secondary_issues hoặc resolution_actions;
 một Policy Context LLM riêng sẽ tạo hai field đó sau khi core pass. Confidence là độ tin cậy
-dựa trên specialist findings, phải trong [0,1] và không được mặc định luôn bằng 1.
+dựa trên specialist findings, thuộc [0,1] (đặt bằng 1.0 khi các bằng chứng và điều kiện luật được kiểm chứng đầy đủ).
 
 ${JSON_ONLY}
 Schema: {"primary_issue":string,"case_status":"action_required|no_action","confidence":number,"cause_code":string,"responsible_party_type":"platform|seller|logistics_provider|null","responsible_party_ids":string[],"recommended_refund_brl":number,"reasoning":"một câu chỉ rõ findings và luật"}`;

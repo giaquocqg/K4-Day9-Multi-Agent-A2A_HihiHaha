@@ -14,8 +14,8 @@ const PROVIDERS = {
         apiKeyEnv: 'GROQ_API_KEY',
     },
     openrouter: {
-        model: 'qwen/qwen3-8b',
-        paramsB: 8,
+        model: 'qwen/qwen-2.5-7b-instruct',
+        paramsB: 7,
         baseUrl: 'https://openrouter.ai/api/v1',
         apiKeyEnv: 'OPENROUTER_API_KEY',
     },
@@ -32,6 +32,9 @@ const PROVIDERS = {
         apiKeyEnv: 'OPENROUTER_API_KEY',
     },
 };
+
+import { loadEnv } from './llm.js';
+loadEnv();
 
 export const PROVIDER = String(process.env.LLM_PROVIDER || 'groq').toLowerCase();
 const selected = PROVIDERS[PROVIDER];
