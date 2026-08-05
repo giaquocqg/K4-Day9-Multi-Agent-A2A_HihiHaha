@@ -63,3 +63,41 @@ python verify_outputs.py
 - **Kết quả mong đợi:** 50 file JSON sinh ra khớp schema, không có lỗi.
 - **Kết quả thực tế:** 50/50 file đã sinh thành công, vượt qua toàn bộ các bài test schema.
 - **Artifact/log:** `logging/trace.jsonl`, `output/*.json`, `metadata.json`
+
+## 5. Một quyết định kỹ thuật quan trọng
+
+- **Bối cảnh:** Cần chọn cơ chế tương tác giữa các Agent sao cho vừa đảm bảo tính linh hoạt của LLM vừa đảm bảo độ chính xác tuyệt đối (Grounding) không bị ảo giác.
+- **Các phương án đã cân nhắc:**
+  1. Cho LLM sinh trực tiếp toàn bộ file JSON từ prompt dài.
+  2. Sử dụng kiến trúc Multi-Agent A2A kết hợp Tools tính toán deterministic và Verifier Agent.
+- **Phương án đã chọn:** Phương án 2.
+- **Lý do:** Đảm bảo 100% dữ liệu grounded từ CSV, tránh LLM bị hallucinate ngày tháng hay số tiền, đồng thời đáp ứng tiêu chí phân công handoff của bài lab.
+
+## 6. Một lỗi hoặc blocker đã xử lý
+
+- **Triệu chứng/lỗi nguyên văn:** Order hủy không có item row làm cho phép tính `expected_total_brl` bị lỗi.
+- **Lệnh hoặc bước tái hiện:** Chạy case đơn hàng hủy/không khả dụng chưa có item rows.
+- **Nguyên nhân gốc:** `expected_total_brl` cần trả về `null` thay vì 0.0 theo đúng quy định đề bài.
+- **Cách xử lý:** Xử lý điều kiện `if not items` trong `lookup_payments` để trả về `null` cho các trường tài chính liên quan.
+- **Cách xác minh sau khi sửa:** Chạy lại `verify_outputs.py` và kiểm tra JSON đầu ra.
+
+## 7. Hiểu biết về luồng end-to-end
+
+1. Dữ liệu đi từ các file CSV Olist trong `data/` được load vào bộ nhớ thông qua `OlistDataLoader`.
+2. Khi nhận input JSON case, Coordinator gửi message giao task tới Customer Agent, Order Product Agent, Payment Agent, Delivery Agent.
+3. Policy Agent nhận thông tin đã tổng hợp để áp dụng chính sách EC_POLICY_V2 và gọi Groq API.
+4. Verifier Agent kiểm tra tính toàn vẹn của Pydantic schema, array limits, và kiểm chứng các evidence ID tồn tại trong CSV.
+5. Ghi file kết quả `output/EC_NNN.json` và log lại toàn bộ trace tương tác vào `trace.jsonl`.
+
+## 8. Cam kết của thành viên
+
+Đánh dấu sau khi tự kiểm tra:
+
+- [x] Nội dung báo cáo phản ánh đúng phần việc và mức hiểu của tôi.
+- [x] Tôi có thể giải thích luồng end-to-end, không chỉ module mình phụ trách.
+- [x] Tôi không ghi “đã chạy thành công” cho phần chưa được kiểm chứng.
+- [x] Báo cáo không chứa `.env`, API key, token hoặc secret.
+- [x] Báo cáo này không phải bản sao nguyên văn của báo cáo nhóm hoặc báo cáo thành viên khác.
+
+**Họ và tên:** Dương Đức Minh  
+**Ngày xác nhận:** 2026-08-05
