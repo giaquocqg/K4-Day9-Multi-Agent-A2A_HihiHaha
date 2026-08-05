@@ -28,7 +28,7 @@ export function setChatResponderForTests(responder) { chatResponder = responder;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const MAX_TRANSPORT_RETRIES = 4;
 const REQUEST_TIMEOUT_MS = 90_000;
-const MAX_COMPLETION_TOKENS = 500;
+const MAX_COMPLETION_TOKENS = 1500;
 
 function providerErrorMessage(text) {
     try { return JSON.parse(text)?.error?.message || String(text).slice(0, 500); }

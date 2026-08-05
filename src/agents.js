@@ -189,10 +189,11 @@ export function validatePolicyCoreCandidate(v, o, p, d) {
         ['valid_split_payment', p.isSplitPayment === true && p.reconciled === true],
         ['unsupported_late_claim', d.llmDeliveredLate === false && p.reconciled === true],
     ];
-    const selectedIndex = conditions.findIndex(([name]) => name === v.primaryIssue);
-    if (!conditions[selectedIndex][1]) errors.push('primary_issue không thỏa điều kiện trên specialist findings');
-    if (conditions.slice(0, selectedIndex).some(([, ok]) => ok))
-        errors.push('primary_issue bỏ qua một điều kiện có độ ưu tiên cao hơn');
+    const activeCondition = conditions.find(([_, ok]) => ok);
+    const expectedPrimary = activeCondition ? activeCondition[0] : 'none';
+    if (v.primaryIssue !== expectedPrimary) {
+        errors.push(`primary_issue không thỏa điều kiện hoặc bỏ qua điều kiện ưu tiên hơn. Cần có chính xác: "${expectedPrimary}"`);
+    }
 
     const contract = POLICY_CONTRACT[v.primaryIssue];
     if (v.causeCode !== contract.cause) errors.push('cause_code không khớp primary_issue');
@@ -243,10 +244,13 @@ function expectedResolutionActions(primaryIssue, secondaryIssues) {
 export function validatePolicyContextCandidate(v, o, p, c, primaryIssue) {
     const errors = [];
     const expectedSecondary = expectedSecondaryIssues(o, p, c);
-    if (!sameList(v?.secondaryIssues, expectedSecondary))
-        errors.push('secondary_issues không nhất quán với specialist findings hoặc sai thứ tự policy');
-    if (!sameList(v?.actions, expectedResolutionActions(primaryIssue, expectedSecondary)))
-        errors.push('resolution_actions không nhất quán với primary/secondary findings hoặc sai thứ tự');
+    if (!sameList(v?.secondaryIssues, expectedSecondary)) {
+        errors.push(`secondary_issues không nhất quán với specialist findings hoặc sai thứ tự. Cần có chính xác: ${JSON.stringify(expectedSecondary)}`);
+    }
+    const expectedActions = expectedResolutionActions(primaryIssue, expectedSecondary);
+    if (!sameList(v?.actions, expectedActions)) {
+        errors.push(`resolution_actions không nhất quán với primary/secondary findings hoặc sai thứ tự. Cần có chính xác: ${JSON.stringify(expectedActions)}`);
+    }
     if (!v?.reasoning || typeof v.reasoning !== 'string')
         errors.push('context reasoning phải giải thích checklist đã áp dụng');
     return errors;

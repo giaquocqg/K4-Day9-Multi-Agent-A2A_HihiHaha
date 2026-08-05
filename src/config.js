@@ -19,12 +19,24 @@ const PROVIDERS = {
         baseUrl: 'https://openrouter.ai/api/v1',
         apiKeyEnv: 'OPENROUTER_API_KEY',
     },
+    openai: {
+        model: 'gpt-4o-mini',
+        paramsB: 8,
+        baseUrl: 'https://api.openai.com/v1',
+        apiKeyEnv: 'OPENAI_API_KEY',
+    },
+    'openrouter-free': {
+        model: 'openrouter/free',
+        paramsB: 8,
+        baseUrl: 'https://openrouter.ai/api/v1',
+        apiKeyEnv: 'OPENROUTER_API_KEY',
+    },
 };
 
 export const PROVIDER = String(process.env.LLM_PROVIDER || 'groq').toLowerCase();
 const selected = PROVIDERS[PROVIDER];
 if (!selected) {
-    throw new Error(`[config] Provider "${PROVIDER}" không hỗ trợ; chọn groq hoặc openrouter.`);
+    throw new Error(`[config] Provider "${PROVIDER}" không hỗ trợ; chọn groq, openrouter, openai hoặc openrouter-free.`);
 }
 
 export const MODEL = selected.model;

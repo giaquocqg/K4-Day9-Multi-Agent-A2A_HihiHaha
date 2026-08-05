@@ -26,9 +26,9 @@ def hrs(a, b):
 
 fails = []
 for f in sorted(glob.glob(f"{ROOT}/output/EC_*.json")):
-    out = json.load(open(f))
+    out = json.load(open(f, encoding="utf-8"))
     cid = out["case_id"]
-    oid = json.load(open(f"{ROOT}/input/{cid}.json"))["customer_request"]["claimed_order_id"]
+    oid = json.load(open(f"{ROOT}/input/{cid}.json", encoding="utf-8"))["customer_request"]["claimed_order_id"]
     o = orders[orders.order_id == oid].iloc[0]
     it = items[items.order_id == oid]
     pm = pays[pays.order_id == oid]
