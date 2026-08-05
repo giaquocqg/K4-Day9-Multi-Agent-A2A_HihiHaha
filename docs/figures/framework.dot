@@ -1,0 +1,42 @@
+digraph Framework {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.35, ranksep=0.6];
+  node [shape=box, style="rounded,filled", fontname="Arial", fontsize=11, color="#2868A9", fillcolor="#E8F1FB"];
+  edge [fontname="Arial", fontsize=9, color="#475467"];
+
+  input [label="Input case\nmessage + scope + policy version", shape=cylinder, fillcolor="#F2F4F7", color="#667085"];
+  coord [label="Coordinator Agent\nLLM task planning", fillcolor="#E7F6EC", color="#18864B"];
+  customer [label="Customer Agent\nLLM + lookup_customer", fillcolor="#E7F6EC", color="#18864B"];
+  order [label="Order/Product Agent\nLLM + status/items tools", fillcolor="#E7F6EC", color="#18864B"];
+  delivery [label="Delivery Agent\nLLM + timestamp/variance tools", fillcolor="#E7F6EC", color="#18864B"];
+  payment [label="Payment Agent\nLLM + payment/reconcile tools", fillcolor="#E7F6EC", color="#18864B"];
+  tools [label="Deterministic tools\ndata access + arithmetic"];
+  csv [label="Olist CSV", shape=cylinder, fillcolor="#F2F4F7", color="#667085"];
+  policy [label="Policy Core Agent\nLLM core verdict", fillcolor="#E7F6EC", color="#18864B"];
+  context [label="Policy Context Agent\nLLM secondary + actions", fillcolor="#E7F6EC", color="#18864B"];
+  check [label="Constraint validation\nno answer generation", shape=diamond, fillcolor="#FFF4D8", color="#B77900"];
+  build [label="Schema builder"];
+  verifier [label="Verifier Agent\nLLM + validation tools", fillcolor="#E7F6EC", color="#18864B"];
+  fail [label="Fail closed\nno output", fillcolor="#FDECEC", color="#C53030"];
+  output [label="Output JSON", shape=cylinder, fillcolor="#F2F4F7", color="#667085"];
+  log [label="trace.jsonl + metadata.json", shape=cylinder, fillcolor="#F2F4F7", color="#667085"];
+
+  input -> coord;
+  coord -> customer; coord -> order; coord -> delivery; order -> payment;
+  csv -> tools;
+  tools -> customer [dir=both, label="model-selected tool action"];
+  tools -> order [dir=both, label="model-selected tool action"];
+  tools -> delivery [dir=both, label="model-selected tool action"];
+  tools -> payment [dir=both, label="model-selected tool action"];
+  customer -> policy; order -> policy; delivery -> policy; payment -> policy;
+  policy -> context [label="core verdict"];
+  context -> check [label="merged candidate"];
+  check -> policy [label="generic feedback", color="#B77900"];
+  check -> context [label="generic feedback", color="#B77900"];
+  check -> build [label="valid"];
+  check -> fail [label="still invalid", color="#C53030"];
+  build -> verifier;
+  verifier -> tools [dir=both, label="validation tools"];
+  verifier -> output [label="pass"];
+  verifier -> fail [label="reject", color="#C53030"];
+  output -> log;
+}

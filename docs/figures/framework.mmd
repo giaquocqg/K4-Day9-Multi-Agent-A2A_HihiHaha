@@ -1,0 +1,36 @@
+flowchart TB
+    CASE["Input case<br/>message + scope + policy version"] --> COORD["Coordinator Agent<br/>LLM task planning"]
+    COORD --> CUST["Customer Agent<br/>LLM + lookup_customer"]
+    COORD --> ORDER["Order/Product Agent<br/>LLM + status/items tools"]
+    COORD --> DEL["Delivery Agent<br/>LLM + timestamp/variance tools"]
+    ORDER --> PAY["Payment Agent<br/>LLM + payment/reconcile tools"]
+
+    CSV[("Olist CSV")] --> TOOLS["Deterministic tools<br/>data access + arithmetic"]
+    TOOLS <-->|"model-selected JSON tool actions"| CUST
+    TOOLS <-->|"model-selected JSON tool actions"| ORDER
+    TOOLS <-->|"model-selected JSON tool actions"| DEL
+    TOOLS <-->|"model-selected JSON tool actions"| PAY
+
+    CUST --> PCORE["Policy Core Agent<br/>LLM core verdict"]
+    ORDER --> PCORE
+    DEL --> PCORE
+    PAY --> PCORE
+    PCORE --> PCONTEXT["Policy Context Agent<br/>LLM secondary + actions"]
+    PCONTEXT --> CHECK{"Constraint validation<br/>no answer generation"}
+    CHECK -->|"generic feedback; max 2 retries/phase"| PCORE
+    CHECK -->|"generic feedback"| PCONTEXT
+    CHECK -->|"valid"| BUILD["Schema builder"]
+    CHECK -->|"still invalid"| FAIL["Fail closed<br/>no output"]
+    BUILD --> VERIFY["Verifier Agent<br/>LLM + validation tools"]
+    VERIFY -->|"pass"| OUT[("Output JSON")]
+    VERIFY -->|"reject"| FAIL
+    OUT --> LOG[("trace.jsonl + metadata.json")]
+
+    classDef llm fill:#E7F6EC,stroke:#18864B,color:#143D28,stroke-width:2px;
+    classDef code fill:#E8F1FB,stroke:#2868A9,color:#173A5E,stroke-width:2px;
+    classDef verify fill:#FFF4D8,stroke:#B77900,color:#5C3B00,stroke-width:2px;
+    classDef fail fill:#FDECEC,stroke:#C53030,color:#681B1B,stroke-width:2px;
+    class COORD,CUST,ORDER,DEL,PAY,PCORE,PCONTEXT,VERIFY llm;
+    class TOOLS,BUILD code;
+    class CHECK verify;
+    class FAIL fail;

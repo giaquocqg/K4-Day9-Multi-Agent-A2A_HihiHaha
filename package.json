@@ -1,0 +1,10 @@
+{
+  "name": "k4-day9-multi-agent-a2a",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "solve": "node src/run.js",
+    "test": "node --test src/*.test.js",
+    "audit": "node tools/validate-schema.mjs && python3 tools/audit.py"
+  }
+}
