@@ -33,7 +33,7 @@ const PROVIDERS = {
     },
 };
 
-export const PROVIDER = String(process.env.LLM_PROVIDER || 'groq').toLowerCase();
+export const PROVIDER = String(process.env.LLM_PROVIDER || 'openai').toLowerCase();
 const selected = PROVIDERS[PROVIDER];
 if (!selected) {
     throw new Error(`[config] Provider "${PROVIDER}" không hỗ trợ; chọn groq, openrouter, openai hoặc openrouter-free.`);

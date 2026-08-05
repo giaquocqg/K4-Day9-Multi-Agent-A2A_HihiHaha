@@ -109,10 +109,10 @@ có MCP server/client. Không mô tả các tool hiện tại là MCP tools.
 npm test
 
 # smoke test một case bằng provider thật
-LLM_PROVIDER=openrouter node src/run.js EC_001
+LLM_PROVIDER=openai node src/run.js EC_001
 
 # full run sau khi smoke test pass
-LLM_PROVIDER=openrouter CONCURRENCY=8 npm run solve
+LLM_PROVIDER=openai CONCURRENCY=8 npm run solve
 
 # kiểm artifact sau full run
 npm run audit

@@ -8,7 +8,7 @@
 | MSSV | 2A202601862 |
 | Khóa/Lớp | K4 |
 | Vai trò | Thiết kế agent pipeline, tools, policy validation, verifier và audit |
-| Model | Qwen3 8B qua OpenRouter; Llama 3.1 8B qua Groq là provider dự phòng |
+| Model | gpt-4o-mini qua OpenAI |
 
 ## 2. Kiến trúc đã triển khai
 
@@ -58,8 +58,8 @@ chưa dùng MCP; local tools không được mô tả là MCP tools.
 
 ```bash
 npm test
-LLM_PROVIDER=openrouter node src/run.js EC_001
-LLM_PROVIDER=openrouter CONCURRENCY=8 npm run solve
+LLM_PROVIDER=openai node src/run.js EC_001
+LLM_PROVIDER=openai CONCURRENCY=8 npm run solve
 npm run audit
 ```
 
