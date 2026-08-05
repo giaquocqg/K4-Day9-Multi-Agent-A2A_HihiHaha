@@ -16,8 +16,8 @@
 
 | Module/deliverable | File/hàm phụ trách | Input nhận vào | Output bàn giao   | Trạng thái                            |
 | ------------------ | ------------------ | -------------- | ----------------- | ------------------------------------- |
-| Điều phối luồng xử lý (Orchestration) | `run_investigation.py` / Lớp `Coordinator` | `case` JSON (Yêu cầu của KH) và dữ liệu CSV | `dossier` tổng hợp, JSON output cuối | Hoàn thành |
-| Tổng hợp và kiểm tra chéo (Synthesis) | `run_investigation.py` / `Coordinator.synthesize()` | Outputs từ Customer, Order, Payment, Delivery | Facts thống nhất hoặc lỗi mâu thuẫn | Hoàn thành |
+| Điều phối luồng xử lý (Orchestration) | `src/pipeline.js` / Lớp `Coordinator` | `case` JSON (Yêu cầu của KH) và dữ liệu CSV | `dossier` tổng hợp, JSON output cuối | Hoàn thành |
+| Tổng hợp và kiểm tra chéo (Synthesis) | `src/pipeline.js` / `runCase` và `runAgent` | Outputs từ Customer, Order, Payment, Delivery | Facts thống nhất hoặc lỗi mâu thuẫn | Hoàn thành |
 
 ### Việc hỗ trợ ngoài phạm vi chính
 
@@ -44,27 +44,27 @@ Bài toán yêu cầu kết hợp thông tin từ nhiều nguồn (order, paymen
 
 ### Cách triển khai
 
-Tôi đã thiết kế `Coordinator` như một Orchestrator. Nó không dùng AI sinh chữ ngẫu nhiên mà gọi các class chuyên biệt (`CustomerAgent`, `CustomerClaimsAgent`, `OrderProductAgent`, `PaymentAgent`, `DeliveryAgent`) một cách tuần tự (deterministic). Khi tất cả agent trả về thông tin qua đối tượng `Handoff`, Coordinator dùng hàm `synthesize()` để gộp facts, evidence_ids và kiểm tra mâu thuẫn (VD: claim cho rằng order có 3 item nhưng DB chỉ có 2). Sau đó, nó mới đẩy cho `PolicyAgent`.
+Tôi đã thiết kế `Coordinator` như một Orchestrator trong Node.js. Nó nhận yêu cầu đầu vào và gọi các agent chuyên biệt (`customer`, `order_product`, `payment`, `delivery`) theo luồng tuần tự và độc lập (wave 1 và wave 2). Khi tất cả các agent hoàn thành đối soát dữ liệu và trả về kết quả qua đối tượng Handoff, Coordinator thực hiện gộp dữ liệu facts, evidence_ids và kiểm tra mâu thuẫn logic, sau đó chuyển giao hồ sơ hoàn chỉnh cho Policy Agent để đưa ra phán quyết cuối cùng.
 
 ### Input, output và contract
 
 | Thành phần              | Mô tả                                  |
 | ----------------------- | -------------------------------------- |
-| Input                   | Yêu cầu của KH (case JSON) và DataStore (chứa DB CSV in-memory) |
-| Output                  | Dictionary chứa kết quả đánh giá cuối (lưu thành JSON vào `output/`) |
-| Module phụ thuộc        | Customer, Order, Payment, Delivery Agents |
-| Module sử dụng output   | `PolicyAgent` (nhận dossier) và `VerifierAgent` (nhận JSON draft) |
-| Điều kiện lỗi cần xử lý | Mâu thuẫn logic giữa các agent (ví dụ sai lệch số lượng payment_rows), thiếu order ID thực tế |
+| Input                   | Yêu cầu của KH (case JSON) và Dataset (chứa dữ liệu CSV đã nạp vào bộ nhớ) |
+| Output                  | Định dạng JSON chứa đánh giá cuối cùng (lưu vào thư mục `output/`) |
+| Module phụ thuộc        | Các Specialist Agents (Customer, Order & Product, Payment, Delivery) |
+| Module sử dụng output   | `Policy Agent` (nhận dossier) và `Verifier Agent` (để kiểm tra định dạng và tính hợp lệ) |
+| Điều kiện lỗi cần xử lý | Phân tích mâu thuẫn dữ liệu thực tế với khiếu nại (ví dụ: giao hàng thực tế không muộn so với cam kết) |
 
 ### Cách xác minh
 
 ```bash
-python run_investigation.py --case all
+npm run solve
 ```
 
-- **Kết quả mong đợi:** Script chạy qua 50 case, không văng lỗi mâu thuẫn nội bộ, sinh ra 50 file JSON chuẩn trong thư mục `output/`.
-- **Kết quả thực tế:** Hệ thống tạo thành công 50 file và sinh ra `trace.jsonl` phản ánh luồng handoff hoàn hảo.
-- **Artifact/log:** `output/` folder, `trace.jsonl`
+- **Kết quả mong đợi:** Hệ thống chạy thành công toàn bộ 50 case, tự động điều phối qua các Agent và xuất ra 50 file JSON trong thư mục `output/` mà không bị Verifier đánh chặn.
+- **Kết quả thực tế:** Hệ thống chạy thành công 50/50 cases và lưu toàn bộ vết hoạt động (trace) chi tiết.
+- **Artifact/log:** `output/` folder, `logging/trace.jsonl`, `logging/metadata.json`
 
 ## 5. Một quyết định kỹ thuật quan trọng
 
@@ -76,12 +76,18 @@ python run_investigation.py --case all
 
 ## 6. Một lỗi hoặc blocker đã xử lý
 
-- **Triệu chứng/lỗi nguyên văn:** Điểm số đánh giá tổng hợp trên hệ thống bị kẹt ở mức 67-68% đồng đều trên tất cả các tiêu chí.
-- **Lệnh hoặc bước tái hiện:** Kiểm tra các case có lượng lớn dữ liệu (nhiều hơn 5 item/payment) hoặc các case có yêu cầu bật/tắt `investigation_scope` trong JSON input.
-- **Nguyên nhân gốc:** (1) Lỗi tính toán `multiple_categories` và `multi_seller_order` do mảng bị cắt (slice `[:5]`) TRƯỚC KHI Agent gom nhóm, làm thiếu thông tin. (2) Lỗi làm tròn số thập phân (rounding) quá sớm ở từng khoản nhỏ trong `PaymentAgent` gây sai số cộng dồn, dẫn đến bắt lỗi sai đối soát. (3) Các Agent không tôn trọng cấu hình `investigation_scope` (thiếu tính độc lập và kiểm chứng chéo).
-- **Cách xử lý:** Sửa code `OrderProductAgent` để tính toán trên toàn bộ danh sách item trước, gán biến boolean, rồi mới slice kết quả đầu ra. Đưa việc làm tròn số (`number()`) về bước cuối cùng trong `PaymentAgent`. Bổ sung kiểm tra cấu hình scope để chủ động chặn output lịch sử mua hàng / sản phẩm nếu `investigation_scope` là false.
-- **Cách xác minh sau khi sửa:** Chạy lại `python run_investigation.py --case all`, tái tạo lại toàn bộ file JSON chuẩn xác.
-- **Điều học được:** Trong thiết kế Multi-Agent đối soát (Reconciliation), việc cắt tỉa evidence chỉ nên làm ở bước Handoff cho Coordinator, còn Agent nội bộ bắt buộc phải tính toán trên tập data đầy đủ để không đánh rơi các edge cases. Hơn nữa, việc làm tròn số khi đối soát tiền tệ cần hết sức cẩn trọng.
+- **Triệu chứng/lỗi nguyên văn:** Khi chạy với model `gpt-4o-mini` của OpenAI, có **15/50 cases bị lỗi BLOCKED** ở khâu đánh giá Policy (Policy Context validation) do các mảng `secondary_issues` và `resolution_actions` bị lệch hoặc sai thứ tự so với checklist, hoặc bị lỗi parse JSON do phản hồi bị cắt cụt.
+- **Lệnh hoặc bước tái hiện:** Chạy lệnh `npm run solve` với `LLM_PROVIDER=openai`.
+- **Nguyên nhân gốc:**
+  1. Lỗi phản hồi JSON bị cắt cụt: Biến cấu hình `MAX_COMPLETION_TOKENS` trong `src/llm.js` mặc định chỉ là `500` khiến các phản hồi chi tiết từ LLM cho các trường hợp phức tạp bị ngắt giữa chừng, gây lỗi cú pháp JSON.
+  2. Lỗi logic phản hồi của Verifier/Validator: Phản hồi lỗi trả về cho mô hình ở các lượt retry quá chung chung (chỉ báo lỗi mâu thuẫn mà không đưa ra thông tin đối chiếu), khiến GPT-4o-mini không xác định được danh sách chính xác cần tạo và bị kẹt sau 2 lượt thử lại.
+  3. Lỗi UnicodeDecodeError: Khi chạy script kiểm tra `tools/audit.py` trên hệ điều hành Windows, Python mặc định mở file bằng encoding CP1252 thay vì UTF-8, gây lỗi sập tiến trình khi đọc ký tự đặc biệt.
+- **Cách xử lý:**
+  1. Tăng `MAX_COMPLETION_TOKENS` trong `src/llm.js` từ `500` lên `1500` để đảm bảo LLM sinh đủ nội dung JSON.
+  2. Chỉnh sửa hàm kiểm duyệt `validatePolicyContextCandidate` và `validatePolicyCoreCandidate` trong `src/agents.js` để in ra danh sách mong muốn chính xác trong chuỗi thông báo lỗi (ví dụ: `Cần có chính xác: [...]`). Khi nhận được feedback chi tiết này, LLM Agent tự động sửa lỗi và trả về dữ liệu khớp hoàn hảo ở lượt retry tiếp theo.
+  3. Bổ sung `encoding="utf-8"` vào các hàm `open()` trong `tools/audit.py` để tương thích hoàn toàn trên môi trường Windows.
+- **Cách xác minh sau khi sửa:** Chạy lại `npm run solve` đạt tỷ lệ thành công tuyệt đối 50/50 cases và `npm run audit` đạt 0 mismatches.
+- **Điều học được:** Khi xây dựng quy trình kiểm duyệt (validation) trong hệ thống multi-agent, việc trả về phản hồi lỗi mang tính định hướng rõ ràng (actionable feedback) là cực kỳ quan trọng để mô hình nhỏ hoặc trung bình tự sửa lỗi thành công qua các lượt retry.
 
 ## 7. Hiểu biết về luồng end-to-end
 
